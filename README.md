@@ -10,6 +10,8 @@ KeyDuty is a macOS menu bar app that puts the actions you use most on the keys y
 
 Right out of the box, tapping **Left Command** sends **Eisu (英数)** and tapping **Right Command** sends **Kana (かな)**, so you can switch Japanese input on a US keyboard just like on a JIS keyboard. Shortcuts like `⌘C` and `⌘V` keep working as usual.
 
+<img width="932" height="664" src="https://github.com/user-attachments/assets/2c8b8ff4-f3bf-4003-95bc-113179ce9a06" />
+
 ## Ideas to get you started
 
 - **Switch Japanese input on a US keyboard.** Tap Left or Right Command to switch modes without leaving the home row.
