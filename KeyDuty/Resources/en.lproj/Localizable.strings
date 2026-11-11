@@ -228,7 +228,7 @@
 "validation.sameKey" = "Choose different keys for the input and destination.";
 "warnings.accessibility" = "Warning: %@";
 "warnings.idleHold" = "The key is sent after the delay from your last press, even while a key is held. Turn off auto send if you do not want it to run while holding a key.";
-"warnings.keyHold" = "%1$@ holds %2$@, which %3$@ also sends as a tap. Using them together may release the held key early.";
+"warnings.keyHold" = "%1$@ holds %2$@, which %3$@ also sends as a tap. While it is held, the tap sends only a key down and the key stays held until %1$@ is released.";
 "warnings.title" = "Usage notes";
 
 "language.section" = "Language";

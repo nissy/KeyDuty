@@ -238,6 +238,7 @@ final class KeyMonitor: NSObject {
                 input, assignments: preferences.assignments(for: origin.keyboardID), origin: origin,
                 modifiers: functionKeyState.modifiers(for: event)
             )
+            sender.heldKeyCodes = keyRemapper.heldOutputKeyCodes
             if let action = result.action {
                 let actionInput = source.flatMap { source in
                     result.isPressRelease ? KeyActionQueue.Input(senderID: origin.senderID, keyCode: source) : nil
@@ -254,7 +255,9 @@ final class KeyMonitor: NSObject {
 
     private func releaseRemappedKeys(preservingOriginalKeys: Bool = true) {
         actionQueue.cancel()
-        for keyCode in keyRemapper.reset(preservingOriginalKeys: preservingOriginalKeys) {
+        let released = keyRemapper.reset(preservingOriginalKeys: preservingOriginalKeys)
+        sender.heldKeyCodes = []
+        for keyCode in released {
             do {
                 try sender.release(keyCode: keyCode)
             } catch {

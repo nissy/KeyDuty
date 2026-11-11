@@ -45,6 +45,24 @@ final class KeySenderTests: XCTestCase {
         )
     }
 
+    func testSendOfHeldKeyPostsOnlyKeyDown() throws {
+        let poster = MockPoster()
+        let sender = try KeySender(poster: poster, sessionToken: 123, canPostEvents: { true })
+        sender.heldKeyCodes = [104]
+
+        try sender.send(.kana)
+        try sender.send(.eisu)
+
+        XCTAssertEqual(
+            poster.requests,
+            [
+                KeyEventRequest(keyCode: 104, isKeyDown: true, userData: 123),
+                KeyEventRequest(keyCode: 102, isKeyDown: true, userData: 123),
+                KeyEventRequest(keyCode: 102, isKeyDown: false, userData: 123)
+            ]
+        )
+    }
+
     func testSendUsesSourceFromTriggeringEvent() throws {
         let poster = MockPoster()
         let fallbackSource = try XCTUnwrap(CGEventSource(stateID: .combinedSessionState))

@@ -78,6 +78,9 @@ final class KeySender {
 
     let sessionToken: Int64
 
+    /// 置き換えで押下を保持している出力キー。KeyMonitorが入力処理ごとに更新する。
+    var heldKeyCodes: Set<CGKeyCode> = []
+
     private let fallbackSource: CGEventSource
     private let poster: KeyEventPosting
     private let canPostEvents: () -> Bool
@@ -123,6 +126,12 @@ final class KeySender {
             KeyEventRequest(keyCode: keyCode, isKeyDown: true, userData: sessionToken),
             source: source
         )
+        // 保持中のキーへ解放を送ると、物理キーを離す前に受信側で保持が解除される。
+        // 押下だけを送り、解放は保持している入力を離したときの1回に任せる。
+        guard !heldKeyCodes.contains(keyCode) else {
+            Logger.keySender.info("Skipping key up for held key code \(keyCode, privacy: .public)")
+            return
+        }
         try poster.post(
             KeyEventRequest(keyCode: keyCode, isKeyDown: false, userData: sessionToken),
             source: source

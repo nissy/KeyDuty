@@ -9,6 +9,9 @@ struct DeviceKeyRemapper {
     private var remappers: [UInt64: KeyRemapper] = [:]
     private var heldOutputs: [Press: CGKeyCode] = [:]
 
+    /// 押下を送ってまだ解放を送っていない出力キー。
+    var heldOutputKeyCodes: Set<CGKeyCode> { Set(heldOutputs.values) }
+
     func hasKnownPress(_ keyCode: CGKeyCode) -> Bool {
         remappers.contains { $0.key != 0 && $0.value.isPressed(keyCode) }
     }
