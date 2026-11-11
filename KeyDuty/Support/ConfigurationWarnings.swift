@@ -4,7 +4,6 @@ struct KeyHoldConflict: Identifiable {
     let keyCode: CGKeyCode
     let holdingAssignments: [KeyAssignment]
     let sendingAssignments: [KeyAssignment]
-    let includesIdle: Bool
 
     var id: CGKeyCode { keyCode }
 
@@ -16,36 +15,24 @@ struct KeyHoldConflict: Identifiable {
     var message: String {
         let separator = L10n.text("list.separator")
         let holders = holdingAssignments.map { L10n.text("format.quote", $0.inputName) }.joined(separator: separator)
-        var senders = sendingAssignments.map { L10n.text("format.quote", $0.inputName) }
-        if includesIdle { senders.append(L10n.text("tab.idle")) }
-        return L10n.text("warnings.keyHold", holders, KeyCatalog.name(for: keyCode),
-                         senders.joined(separator: separator))
+        let senders = sendingAssignments.map { L10n.text("format.quote", $0.inputName) }.joined(separator: separator)
+        return L10n.text("warnings.keyHold", holders, KeyCatalog.name(for: keyCode), senders)
     }
 }
 
 struct ConfigurationWarnings {
     let keyHoldConflicts: [KeyHoldConflict]
-    let idleHoldMessage: String?
 
     // 実際に有効な行だけを受け取り、実行中の設定とは独立して注意を計算する。
-    init(activeAssignments: [KeyAssignment], idleEnabled: Bool, idleAction: KeyAction) {
-        let idleKey: CGKeyCode?
-        if idleEnabled, idleAction.isValid, case let .sendKey(code) = idleAction {
-            idleKey = code
-        } else {
-            idleKey = nil
-        }
-        idleHoldMessage = idleKey == nil ? nil :
-            L10n.text("warnings.idleHold")
-
+    // 自動送信はキーの押下中に実行しないため、保持中の出力キーとは干渉しない。
+    init(activeAssignments: [KeyAssignment]) {
         let heldKeys = Set(activeAssignments.compactMap(Self.heldKey))
         keyHoldConflicts = heldKeys.sorted().compactMap { keyCode in
             let holders = activeAssignments.filter { Self.heldKey($0) == keyCode }
             let senders = activeAssignments.filter { Self.tappedKeys($0).contains(keyCode) }
-            guard !senders.isEmpty || idleKey == keyCode else { return nil }
+            guard !senders.isEmpty else { return nil }
             // 除外する機種が異なっても、別キーボードからの同時入力で干渉し得る。
-            return KeyHoldConflict(keyCode: keyCode, holdingAssignments: holders,
-                                   sendingAssignments: senders, includesIdle: idleKey == keyCode)
+            return KeyHoldConflict(keyCode: keyCode, holdingAssignments: holders, sendingAssignments: senders)
         }
     }
 
@@ -70,6 +57,6 @@ struct ConfigurationWarnings {
 
 extension Preferences {
     var configurationWarnings: ConfigurationWarnings {
-        ConfigurationWarnings(activeAssignments: activeAssignments, idleEnabled: idleEnabled, idleAction: idleAction)
+        ConfigurationWarnings(activeAssignments: activeAssignments)
     }
 }

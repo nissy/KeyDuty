@@ -34,7 +34,6 @@ final class ConfigurationWarningsTests: XCTestCase {
         XCTAssertTrue(conflict.involves(split))
         XCTAssertTrue(conflict.message.contains(L10n.text("format.quote", "A")))
         XCTAssertTrue(conflict.message.contains(split.inputName))
-        XCTAssertFalse(conflict.includesIdle)
     }
 
     func testSingleTapsCapsLockAndShortcutsAreSendersRatherThanHolders() throws {
@@ -94,32 +93,12 @@ final class ConfigurationWarningsTests: XCTestCase {
         XCTAssertTrue(preferences.configurationWarnings.keyHoldConflicts.isEmpty)
     }
 
-    func testIdleWarnsAboutHeldKeysEvenWithoutAssignmentsAndStopsWhenDisabledOrUnselected() {
-        preferences.idleEnabled = true
-        XCTAssertNotNil(preferences.configurationWarnings.idleHoldMessage)
-        XCTAssertTrue(preferences.configurationWarnings.keyHoldConflicts.isEmpty)
-        preferences.idleEnabled = false
-        XCTAssertNil(preferences.configurationWarnings.idleHoldMessage)
-        preferences.idleEnabled = true
-        preferences.idleAction = .none
-        XCTAssertNil(preferences.configurationWarnings.idleHoldMessage)
-    }
-
-    func testIdleSameOutputConflictAppearsForHoldRowAndIdleAndUpdatesAfterEditing() throws {
-        let hold = KeyAssignment(sourceKeyCode: 0, destinationKeyCode: 11)
-        preferences.keyAssignments = [hold]
+    func testAutoSendNoLongerWarnsBecauseItWaitsWhileKeysAreHeld() {
+        preferences.keyAssignments = [KeyAssignment(sourceKeyCode: 0, destinationKeyCode: 11)]
         preferences.idleEnabled = true
         preferences.idleAction = .sendKey(keyCode: 11)
-        let conflict = try XCTUnwrap(preferences.configurationWarnings.keyHoldConflicts.first)
-        XCTAssertTrue(conflict.includesIdle)
-        XCTAssertTrue(conflict.involves(hold))
-        XCTAssertTrue(conflict.sendingAssignments.isEmpty)
-        XCTAssertTrue(conflict.message.contains(L10n.text("tab.idle")))
+        XCTAssertTrue(preferences.configurationWarnings.keyHoldConflicts.isEmpty)
         preferences.idleAction = .eisu
-        XCTAssertTrue(preferences.configurationWarnings.keyHoldConflicts.isEmpty)
-        XCTAssertNotNil(preferences.configurationWarnings.idleHoldMessage)
-        preferences.idleAction = .sendKey(keyCode: 11)
-        preferences.idleEnabled = false
         XCTAssertTrue(preferences.configurationWarnings.keyHoldConflicts.isEmpty)
     }
 

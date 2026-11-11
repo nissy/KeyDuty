@@ -5,7 +5,6 @@ struct IdlePreferencesView: View {
     @ObservedObject var preferences: Preferences
 
     var body: some View {
-        let warnings = preferences.configurationWarnings
         Form {
             Section {
                 Toggle(L10n.text("idle.enable"), isOn: $preferences.idleEnabled)
@@ -30,16 +29,6 @@ struct IdlePreferencesView: View {
                 }
             } footer: {
                 Text(L10n.text("idle.description"))
-            }
-            if let message = warnings.idleHoldMessage {
-                Section {
-                    ConfigurationWarningView(message: message)
-                    ForEach(warnings.keyHoldConflicts.filter(\.includesIdle)) { conflict in
-                        ConfigurationWarningView(message: conflict.message)
-                    }
-                } header: {
-                    Text(L10n.text("warnings.title"))
-                }
             }
         }
         .formStyle(.grouped)

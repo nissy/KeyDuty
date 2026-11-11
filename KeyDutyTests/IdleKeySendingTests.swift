@@ -16,6 +16,7 @@ final class IdleKeySendingTests: XCTestCase {
     private var poster: IdleEventPoster!
     private var monitor: KeyMonitor!
     private var time: TimeInterval = 100
+    private var osReportsKeyDown = true
 
     override func setUp() async throws {
         suiteName = "IdleKeySendingTests.\(UUID().uuidString)"
@@ -29,6 +30,7 @@ final class IdleKeySendingTests: XCTestCase {
             preferences: preferences,
             sender: try KeySender(poster: poster, sessionToken: 123, canPostEvents: { true }),
             isSecureInputEnabled: { false }, currentModifierFlags: { [] },
+            isKeyDown: { [unowned self] _ in osReportsKeyDown },
             now: { [unowned self] in time }
         )
     }
@@ -53,6 +55,11 @@ final class IdleKeySendingTests: XCTestCase {
         _ = monitor.handle(type: event.type, event: event)
     }
 
+    private func tap(_ code: CGKeyCode = 0, senderID: Int64 = 10) throws {
+        deliver(try key(code, senderID: senderID))
+        deliver(try key(code, .keyUp, senderID: senderID))
+    }
+
     private func check(at time: TimeInterval, taps: Int, file: StaticString = #filePath, line: UInt = #line) {
         self.time = time
         monitor.checkIdleTimeout()
@@ -68,35 +75,40 @@ final class IdleKeySendingTests: XCTestCase {
         }
         deliver(try key(55, .flagsChanged))
         deliver(try key(repeatKey: true))
+        deliver(try key(0, .keyUp))
         check(at: 300, taps: 0)
-        deliver(try key())
+        try tap()
         check(at: 304.9, taps: 0)
         check(at: 305, taps: 1)
     }
 
-    func testReleaseMouseAndRepeatsDoNotDelayOrRearmSending() throws {
+    func testReleaseRestartsDelayButMouseAndRepeatsDoNotDelayOrRearmSending() throws {
         deliver(try key())
         time = 104
-        for type: CGEventType in [.keyUp, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel] {
-            deliver(try key(0, type))
-        }
         deliver(try key(repeatKey: true))
-        check(at: 105, taps: 1)
+        check(at: 105, taps: 0)
         time = 106
         deliver(try key(0, .keyUp))
+        time = 108
+        for type: CGEventType in [.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel] {
+            deliver(try key(0, type))
+        }
+        check(at: 110.9, taps: 0)
+        check(at: 111, taps: 1)
+        time = 112
+        deliver(try key(0, .keyUp))
         deliver(try key(0, .scrollWheel))
-        deliver(try key(repeatKey: true))
         check(at: 200, taps: 1)
     }
 
     func testNewPressResetsDeadlineAndRearmsOneShot() throws {
-        deliver(try key())
+        try tap()
         time = 104
-        deliver(try key(11))
+        try tap(11)
         check(at: 105, taps: 0)
         check(at: 109, taps: 1)
         check(at: 200, taps: 1)
-        deliver(try key())
+        try tap()
         check(at: 204.9, taps: 1)
         check(at: 205, taps: 2)
         XCTAssertEqual(poster.requests.map(\.isKeyDown), [true, false, true, false])
@@ -107,7 +119,7 @@ final class IdleKeySendingTests: XCTestCase {
         own.setIntegerValueField(.eventSourceUserData, value: 123)
         deliver(own)
         check(at: 200, taps: 0)
-        deliver(try key())
+        try tap()
         time = 204
         deliver(own)
         check(at: 205, taps: 1)
@@ -124,9 +136,11 @@ final class IdleKeySendingTests: XCTestCase {
         check(at: 105, taps: 0)
         time = 108
         deliver(try key(54, .flagsChanged, flags: left))
-        check(at: 109, taps: 1)
+        check(at: 200, taps: 0)
         deliver(try key(55, .flagsChanged))
-        check(at: 200, taps: 1)
+        check(at: 204.9, taps: 0)
+        check(at: 205, taps: 1)
+        check(at: 300, taps: 1)
     }
 
     func testSameModifierOnDifferentKeyboardsCountsEachPressOnly() throws {
@@ -135,16 +149,18 @@ final class IdleKeySendingTests: XCTestCase {
         deliver(try key(55, .flagsChanged, flags: .maskCommand, senderID: 20))
         time = 108
         deliver(try key(55, .flagsChanged, flags: .maskCommand, senderID: 10))
-        check(at: 109, taps: 1)
+        check(at: 200, taps: 0)
         deliver(try key(55, .flagsChanged, senderID: 20))
-        check(at: 200, taps: 1)
+        check(at: 204.9, taps: 0)
+        check(at: 205, taps: 1)
     }
 
     func testFnAndBothCapsLockTogglesCountAsPresses() throws {
         deliver(try key(63, .flagsChanged, flags: .maskSecondaryFn))
         time = 104
         deliver(try key(63, .flagsChanged))
-        check(at: 105, taps: 1)
+        check(at: 108.9, taps: 0)
+        check(at: 109, taps: 1)
         time = 110
         deliver(try key(57, .flagsChanged, flags: .maskAlphaShift))
         time = 114
@@ -163,14 +179,18 @@ final class IdleKeySendingTests: XCTestCase {
         )?.cgEvent)
     }
 
-    func testMediaPressCountsButRepeatAndReleaseDoNot() throws {
+    func testMediaKeyHoldBlocksSendingUntilRelease() throws {
         deliver(try media(down: false))
         check(at: 200, taps: 0)
         deliver(try media(down: true))
         time = 204
         deliver(try media(down: true, repeatKey: true))
+        osReportsKeyDown = false
+        check(at: 206, taps: 0)
+        time = 207
         deliver(try media(down: false))
-        check(at: 205, taps: 1)
+        check(at: 211.9, taps: 0)
+        check(at: 212, taps: 1)
     }
 
     func testStopDisarmsUntilAnotherPress() throws {
@@ -185,8 +205,66 @@ final class IdleKeySendingTests: XCTestCase {
         check(at: 200, taps: 0)
         NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
         check(at: 300, taps: 0)
-        deliver(try key())
+        try tap()
         check(at: 305, taps: 1)
+    }
+
+    func testHeldKeyDoesNotSendUntilAllKeysAreReleased() throws {
+        deliver(try key())
+        time = 101
+        try tap(11)
+        for repeatTime in stride(from: 102.0, through: 150, by: 0.5) {
+            time = repeatTime
+            deliver(try key(repeatKey: true))
+            check(at: repeatTime, taps: 0)
+        }
+        time = 150
+        deliver(try key(0, .keyUp))
+        check(at: 154.9, taps: 0)
+        check(at: 155, taps: 1)
+    }
+
+    func testHeldFnAfterPlaybackDoesNotSend() throws {
+        deliver(try key(63, .flagsChanged, flags: .maskSecondaryFn))
+        osReportsKeyDown = false
+        check(at: 105, taps: 0)
+        check(at: 200, taps: 0)
+        deliver(try key(63, .flagsChanged))
+        check(at: 204.9, taps: 0)
+        check(at: 205, taps: 1)
+    }
+
+    func testKeyHeldOnAnotherKeyboardBlocksSending() throws {
+        deliver(try key(0, senderID: 10))
+        time = 101
+        try tap(0, senderID: 20)
+        check(at: 200, taps: 0)
+        deliver(try key(0, .keyUp, senderID: 10))
+        check(at: 205, taps: 1)
+    }
+
+    func testReleaseWithoutSenderClearsHeldKey() throws {
+        deliver(try key(0, senderID: 10))
+        time = 101
+        deliver(try key(0, .keyUp, senderID: 0))
+        check(at: 106, taps: 1)
+    }
+
+    func testMissedReleaseIsClearedByKeyboardStateAndRestartsDelay() throws {
+        deliver(try key())
+        check(at: 200, taps: 0)
+        osReportsKeyDown = false
+        check(at: 201, taps: 0)
+        check(at: 205.9, taps: 0)
+        check(at: 206, taps: 1)
+    }
+
+    func testResetWhileHoldingRestartsDelay() throws {
+        deliver(try key())
+        time = 150
+        monitor.resetState()
+        check(at: 154.9, taps: 0)
+        check(at: 155, taps: 1)
     }
 
     func testDisabledAutoSendDoesNotPost() throws {

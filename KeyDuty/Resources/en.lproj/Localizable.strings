@@ -92,7 +92,7 @@
 "help.split" = "Enable this in the row’s “…” menu. Each press and release sends a key tap or runs an action once. Either side can do nothing. Single-tap detection and later-press priority do not apply.";
 "help.title" = "Assigning keys";
 "idle.delay" = "Delay";
-"idle.description" = "Sends the selected key once after the delay from your last key press. Key releases, mouse actions, and automatic repeats do not reset the delay. Nothing is sent before the first key press after launch or when no key is selected.";
+"idle.description" = "Sends the selected key once after no key has been held for the delay. Nothing is sent while a key is held, and the delay restarts when all keys are released. Mouse actions do not reset the delay. Nothing is sent before the first key press after launch or when no key is selected.";
 "idle.enable" = "Send a key after inactivity";
 "idle.key" = "Key to send";
 "idle.picker" = "Key to send automatically";
@@ -227,9 +227,7 @@
 "validation.noSplit" = "This key does not support separate press and release actions.";
 "validation.sameKey" = "Choose different keys for the input and destination.";
 "warnings.accessibility" = "Warning: %@";
-"warnings.idleHold" = "The key is sent after the delay from your last press, even while a key is held. Turn off auto send if you do not want it to run while holding a key.";
 "warnings.keyHold" = "%1$@ holds %2$@, which %3$@ also sends as a tap. Using them together may release the held key early.";
-"warnings.title" = "Usage notes";
 
 "language.section" = "Language";
 "language.label" = "Display language";

@@ -27,6 +27,7 @@ final class KeyMonitor: NSObject {
     private let keyboardDeviceManager: KeyboardDeviceManager
     private let isSecureInputEnabled: () -> Bool
     private let currentModifierFlags: () -> CGEventFlags
+    private let isKeyDown: (CGKeyCode) -> Bool
     private let now: () -> TimeInterval
     private let onError: ErrorHandler
     private let onStatusChange: StatusHandler
@@ -70,6 +71,7 @@ final class KeyMonitor: NSObject {
         keyboardDeviceManager: KeyboardDeviceManager = .shared,
         isSecureInputEnabled: @escaping () -> Bool = { IsSecureEventInputEnabled() },
         currentModifierFlags: @escaping () -> CGEventFlags = { CGEventSource.flagsState(.combinedSessionState) },
+        isKeyDown: @escaping (CGKeyCode) -> Bool = { CGEventSource.keyState(.hidSystemState, key: $0) },
         now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
         onError: @escaping ErrorHandler = { _ in },
         onStatusChange: @escaping StatusHandler = { _ in }
@@ -80,6 +82,7 @@ final class KeyMonitor: NSObject {
         self.keyboardDeviceManager = keyboardDeviceManager
         self.isSecureInputEnabled = isSecureInputEnabled
         self.currentModifierFlags = currentModifierFlags
+        self.isKeyDown = isKeyDown
         self.now = now
         capsLockEnabled = currentModifierFlags().contains(.maskAlphaShift)
         self.onError = onError
@@ -160,6 +163,10 @@ final class KeyMonitor: NSObject {
     }
 
     func resetState(preservingOriginalKeys: Bool = true) {
+        // 押下中のキーの追跡も消えるため、押下中に送信しないようその時点から数え直す。
+        if keyPressTracker.isHoldingKeys, lastKeyPressAt != nil {
+            lastKeyPressAt = now()
+        }
         releaseRemappedKeys(preservingOriginalKeys: preservingOriginalKeys)
         stateMachine.reset()
         keyboardDeviceManager.resetInputState()
@@ -177,13 +184,7 @@ final class KeyMonitor: NSObject {
 
         guard !sender.isOwnEvent(event) else { return event }
 
-        if keyPressTracker.isPress(
-            type: type, event: event,
-            senderID: type == .flagsChanged ? keyboardDeviceManager.origin(for: event).senderID : 0
-        ) {
-            lastKeyPressAt = now()
-            hasIdleFired = false
-        }
+        trackKeyPress(type: type, event: event)
 
         if captureRecordedInput(type: type, event: event) { return nil }
         if isInputSuspended {
@@ -345,12 +346,13 @@ final class KeyMonitor: NSObject {
 
     @objc
     func checkIdleTimeout() {
-        guard preferences.idleEnabled,
-              !hasIdleFired,
-              !isInputSuspended,
-              let lastKeyPressAt,
-              now() - lastKeyPressAt >= preferences.idleTimeoutSeconds
-        else { return }
+        guard preferences.idleEnabled, !hasIdleFired, !isInputSuspended, lastKeyPressAt != nil else { return }
+        if keyPressTracker.isHoldingKeys {
+            // 押下中は送信しない。解放を取りこぼしたキーはOSの状態で取り除き、その時点から数え直す。
+            if keyPressTracker.removeReleasedKeys(isKeyDown: isKeyDown) { lastKeyPressAt = now() }
+            return
+        }
+        guard let lastKeyPressAt, now() - lastKeyPressAt >= preferences.idleTimeoutSeconds else { return }
 
         // 送信失敗時も再試行しない（次のキー押下でリセットされるまで1回のみ）
         hasIdleFired = true
@@ -390,6 +392,20 @@ final class KeyMonitor: NSObject {
 }
 
 extension KeyMonitor {
+    private func trackKeyPress(type: CGEventType, event: CGEvent) {
+        let isKeyEvent = [.keyDown, .keyUp, .flagsChanged, SystemKeyInput.eventType].contains(type)
+        let senderID = isKeyEvent ? keyboardDeviceManager.origin(for: event).senderID : 0
+        switch keyPressTracker.update(type: type, event: event, senderID: senderID) {
+        case .press:
+            (lastKeyPressAt, hasIdleFired) = (now(), false)
+        case .allReleased where lastKeyPressAt != nil:
+            // 押し続けた時間を無操作に含めず、すべてのキーを離した時点から数え直す。
+            lastKeyPressAt = now()
+        case .allReleased, .unchanged:
+            break
+        }
+    }
+
     private func captureRecordedInput(type: CGEventType, event: CGEvent) -> Bool {
         guard preferences.isRecordingKey, !suspensionState.isSuspended, !isSecureInputEnabled(),
               [.keyDown, .keyUp, .flagsChanged, SystemKeyInput.eventType].contains(type),
