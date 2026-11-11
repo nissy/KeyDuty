@@ -1,0 +1,70 @@
+name: KeyDuty
+
+options:
+  developmentLanguage: en
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "27.1"
+  createIntermediateGroups: true
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    DEVELOPMENT_TEAM: R7LKF73J2W
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    CLANG_ENABLE_MODULES: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 0.1.0
+
+targets:
+  KeyDuty:
+    type: application
+    platform: macOS
+    sources:
+      - path: KeyDuty
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nissy.KeyDuty
+        PRODUCT_NAME: KeyDuty
+        PRODUCT_MODULE_NAME: KeyDuty
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: $(PRODUCT_NAME)
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        ENABLE_APP_SANDBOX: NO
+
+  KeyDutyTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: KeyDutyTests
+    dependencies:
+      - target: KeyDuty
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nissy.KeyDutyTests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+
+schemes:
+  KeyDuty:
+    build:
+      targets:
+        KeyDuty: all
+        KeyDutyTests: [test]
+    test:
+      config: Debug
+      targets:
+        - KeyDutyTests
+    run:
+      config: Debug
+    archive:
+      config: Release

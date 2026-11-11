@@ -1,0 +1,19 @@
+{
+  "concept": "M",
+  "description": "青・アイボリー・オレンジのキーボード。選択した候補Mの外側背景を透過。",
+  "generator": "built-in image_gen",
+  "source": "concept-M.png",
+  "master": "KeyDuty-master.png",
+  "prompt": "Produce a clean production-ready transparent PNG version of this EXACT approved app icon. Retain blue/ivory/orange palette, same bold keyboard shape with 2 rows of 5 square key holes and a bottom row orange key, long spacebar and one blue key. IMPORTANT: The outer silhouette must be one perfectly smooth continuous macOS rounded square with an impeccably clean antialiased alpha edge. Reconstruct that outer contour as a precise geometric path, not a rough cutout. Outside the rounded square and its margins alpha is exactly zero: NO edge fragments, NO dust, NO partially erased background, NO colored speckles, NO shadows or halo. Solid opaque rich ultramarine rounded-square background with only a very subtle smooth gradient. Same ivory keyboard mark centered at same size and position. All content within silhouette fully opaque. Make a polished graphic master that faithfully matches the approved appearance, crisp vector-like geometry, no additional highlights or stylization. Square image with transparent margin around tile as in the original. No backdrop. No text.",
+  "exportTool": "macOS sips",
+  "catalog": "../../KeyDuty/Assets.xcassets/AppIcon.appiconset",
+  "sizes": [
+    16,
+    32,
+    64,
+    128,
+    256,
+    512,
+    1024
+  ]
+}
