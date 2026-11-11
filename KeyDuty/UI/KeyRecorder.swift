@@ -14,6 +14,11 @@ struct KeyRecordingState {
     var functionKeyState = FunctionKeyState()
     private var pendingKey: CGKeyCode?
 
+    init(allowsModifiers: Bool, includesSystemKeys: Bool = false) {
+        self.allowsModifiers = allowsModifiers
+        self.includesSystemKeys = includesSystemKeys
+    }
+
     mutating func receive(_ event: NSEvent) -> Result {
         if let cgEvent = event.cgEvent { functionKeyState.update(cgEvent) }
         if event.type == .flagsChanged {

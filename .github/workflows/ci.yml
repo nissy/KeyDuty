@@ -25,11 +25,12 @@ jobs:
       - name: List installed Xcode versions
         run: ls -d /Applications/Xcode*.app
 
-      # project.yml の xcodeVersion に合わせる
-      - name: Select Xcode
+      # GitHub ホストランナーには Xcode 27 系がまだ無いため、
+      # ランナーにある最新安定版を使う
+      - name: Select latest stable Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "27.1"
+          xcode-version: latest-stable
 
       - name: Show toolchain
         run: |
