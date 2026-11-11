@@ -1,6 +1,6 @@
 # KeyDuty
 
-**English** | [日本語](README.ja.md)
+**English** | [Japanese](README.ja.md)
 
 <img src="KeyDuty/Assets.xcassets/AppIcon.appiconset/icon_128x128@2x.png" alt="KeyDuty app icon" width="128" height="128">
 
@@ -8,7 +8,7 @@
 
 KeyDuty is a macOS menu bar app that puts the actions you use most on the keys you choose. Switch input modes, move hard-to-reach keys, lock your screen, or pause music, all with a single key.
 
-Right out of the box, tapping **Left Command** sends **Eisu (英数)** and tapping **Right Command** sends **Kana (かな)**, so you can switch Japanese input on a US keyboard just like on a JIS keyboard. Shortcuts like `⌘C` and `⌘V` keep working as usual.
+Right out of the box, tapping **Left Command** sends **Eisu** and tapping **Right Command** sends **Kana**, so you can switch Japanese input on a US keyboard just like on a JIS keyboard. Shortcuts like `⌘C` and `⌘V` keep working as usual.
 
 <img width="932" height="664" src="https://github.com/user-attachments/assets/2c8b8ff4-f3bf-4003-95bc-113179ce9a06" />
 
