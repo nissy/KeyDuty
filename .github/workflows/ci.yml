@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: List installed Xcode versions
         run: ls -d /Applications/Xcode*.app
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TestResults
           path: build/TestResults.xcresult
