@@ -234,3 +234,19 @@
 "language.section" = "言語";
 "language.label" = "表示言語";
 "language.system" = "システム設定に従う";
+
+"updates.check" = "アップデートを確認…";
+"updates.section" = "ソフトウェアアップデート";
+"updates.automaticallyCheck" = "アップデートを自動で確認";
+
+"typingSound.section" = "打鍵音";
+"typingSound.enabled" = "打鍵音を鳴らす";
+"typingSound.selection" = "音の種類";
+"typingSound.volume" = "音量";
+"typingSound.preview" = "試聴";
+"typingSound.kacha" = "カチャッ";
+"typingSound.koto" = "コトッ";
+"typingSound.saku" = "サクッ";
+"typingSound.piko" = "ピコッ";
+"typingSound.poko" = "ポコッ";
+"typingSound.kira" = "キラッ";

@@ -8,6 +8,7 @@ import Foundation
 final class KeyMonitor: NSObject {
     typealias ErrorHandler = @MainActor (Error) -> Void
     typealias StatusHandler = @MainActor (Bool) -> Void
+    typealias TypingSoundHandler = @MainActor (TypingSound, Bool) -> Void
     private static let eventMask: CGEventMask = [
         CGEventType.flagsChanged,
         .keyDown,
@@ -47,6 +48,7 @@ final class KeyMonitor: NSObject {
     private var wasSecureInput = false
     private var recordingObservation: AnyCancellable?
     private var deviceRemovalObservation: AnyCancellable?
+    private var keyPressObservation: AnyCancellable?
     private lazy var actionQueue = KeyActionQueue(
         sender: sender, executor: actionExecutor, preferences: preferences,
         isSuspended: { [weak self] in self?.isInputSuspended ?? true }, onError: onError
@@ -71,6 +73,7 @@ final class KeyMonitor: NSObject {
         isSecureInputEnabled: @escaping () -> Bool = { IsSecureEventInputEnabled() },
         currentModifierFlags: @escaping () -> CGEventFlags = { CGEventSource.flagsState(.combinedSessionState) },
         now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+        onTypingSound: @escaping TypingSoundHandler = { _, _ in },
         onError: @escaping ErrorHandler = { _ in },
         onStatusChange: @escaping StatusHandler = { _ in }
     ) {
@@ -89,6 +92,10 @@ final class KeyMonitor: NSObject {
         registerLifecycleObservers()
         recordingObservation = preferences.$isRecordingKey.removeDuplicates().dropFirst().sink { [weak self] _ in
             self?.resetState()
+        }
+        keyPressObservation = keyboardDeviceManager.keyPresses.sink { [weak self] deep in
+            guard let self, self.preferences.typingSoundEnabled, !self.isInputSuspended else { return }
+            onTypingSound(self.preferences.typingSound, deep)
         }
         deviceRemovalObservation = keyboardDeviceManager.removals.sink { [weak self] in
             // 切断した実キーの解放が届かない場合も、変換先の押下状態を残さない。

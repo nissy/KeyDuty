@@ -49,6 +49,10 @@ Exclude keyboard models from individual assignments. Exclusions are saved by mod
 
 Search keys by name or press a key to record it. Symbol keys show both their US and JIS names. Settings save automatically, and KeyDuty can launch at login. The interface is available in **English and Japanese**, and switching languages takes effect immediately.
 
+### Typing sounds
+
+Choose from six mechanical and electronic sounds in **General → Typing Sound**. Preview a sound, adjust its volume, and turn it on whenever you want audible feedback as you type.
+
 ## Getting started
 
 For **macOS 14 or later**.

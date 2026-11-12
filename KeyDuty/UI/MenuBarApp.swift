@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Sparkle
 import SwiftUI
 
 @MainActor
@@ -16,6 +17,7 @@ final class MenuBarApp: NSObject, NSApplicationDelegate {
         NSImage(systemSymbolName: "keyboard.badge.ellipsis", accessibilityDescription: appName)
     }
 
+    private var updaterController: SPUStandardUpdaterController?
     private var statusItem: NSStatusItem?
     private var preferencesWindow: NSWindow?
     private let permissionManager = PermissionManager.shared
@@ -27,9 +29,18 @@ final class MenuBarApp: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !Self.isRunningUnitTests else { return }
         NSApp.setActivationPolicy(.accessory)
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
         setupStatusItem()
         observeIMEStatus()
         observeLanguage()
+        let preferences = Preferences.shared
+        if preferences.typingSoundEnabled {
+            TypingSoundPlayer.shared.prepare(preferences.typingSound)
+        }
         startMonitoring()
     }
 
@@ -48,9 +59,10 @@ final class MenuBarApp: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
         menu.addItem(withTitle: L10n.text("menu.settings"), action: #selector(showPreferences), keyEquivalent: ",")
+        menu.items.last?.target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: L10n.text("menu.quit"), action: #selector(terminate), keyEquivalent: "q")
-        menu.items.forEach { $0.target = self }
+        menu.items.last?.target = self
         item.menu = menu
         statusItem = item
     }
@@ -97,6 +109,13 @@ final class MenuBarApp: NSObject, NSApplicationDelegate {
                 preferences: .shared,
                 sender: sender,
                 keyboardDeviceManager: keyboardDeviceManager,
+                onTypingSound: { sound, deep in
+                    DispatchQueue.main.async {
+                        let preferences = Preferences.shared
+                        guard preferences.typingSoundEnabled else { return }
+                        TypingSoundPlayer.shared.play(sound, volume: preferences.typingSoundVolume, deep: deep)
+                    }
+                },
                 onError: { [weak self] error in
                     self?.handleMonitorError(error)
                 },
@@ -142,7 +161,8 @@ final class MenuBarApp: NSObject, NSApplicationDelegate {
                 preferences: .shared,
                 permissionManager: .shared,
                 launchAtLoginManager: .shared,
-                keyboardDeviceManager: .shared
+                keyboardDeviceManager: .shared,
+                updater: updaterController?.updater
             )
         )
         let window = NSWindow(contentViewController: controller)

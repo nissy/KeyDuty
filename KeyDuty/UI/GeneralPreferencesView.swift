@@ -1,10 +1,13 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 struct GeneralPreferencesView: View {
+    @ObservedObject var preferences: Preferences
     @ObservedObject var permissionManager: PermissionManager
     @ObservedObject var launchAtLoginManager: LaunchAtLoginManager
     @ObservedObject var keyboardDeviceManager: KeyboardDeviceManager
+    var updater: SPUUpdater?
     @ObservedObject var languageSettings: LanguageSettings = .shared
     @State private var permissionFeedbackMessage: String?
     @State private var permissionFeedbackRevision = 0
@@ -20,6 +23,8 @@ struct GeneralPreferencesView: View {
                 .accessibilityIdentifier("appLanguagePicker")
 
             }
+
+            TypingSoundSettingsView(preferences: preferences)
 
             Section(L10n.text("general.startup")) {
                 Toggle(
@@ -38,6 +43,10 @@ struct GeneralPreferencesView: View {
                     Text(errorMessage)
                         .foregroundStyle(.red)
                 }
+            }
+
+            if let updater {
+                UpdateSettingsView(updater: updater)
             }
 
             Section(L10n.text("permissions.title")) {
