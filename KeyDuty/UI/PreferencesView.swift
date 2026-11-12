@@ -1,3 +1,4 @@
+import Sparkle
 import SwiftUI
 
 struct PreferencesView: View {
@@ -5,6 +6,7 @@ struct PreferencesView: View {
     @ObservedObject var permissionManager: PermissionManager
     @ObservedObject var launchAtLoginManager: LaunchAtLoginManager
     @ObservedObject var keyboardDeviceManager: KeyboardDeviceManager
+    var updater: SPUUpdater?
     @ObservedObject var languageSettings: LanguageSettings = .shared
     @State private var selectedTab = SettingsTab.keys
 
@@ -35,9 +37,11 @@ struct PreferencesView: View {
                     IdlePreferencesView(preferences: preferences)
                 case .general:
                     GeneralPreferencesView(
+                        preferences: preferences,
                         permissionManager: permissionManager,
                         launchAtLoginManager: launchAtLoginManager,
                         keyboardDeviceManager: keyboardDeviceManager,
+                        updater: updater,
                         languageSettings: languageSettings
                     )
                 }

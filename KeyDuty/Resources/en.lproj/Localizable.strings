@@ -234,3 +234,19 @@
 "language.section" = "Language";
 "language.label" = "Display language";
 "language.system" = "Follow system settings";
+
+"updates.check" = "Check for Updates…";
+"updates.section" = "Software Update";
+"updates.automaticallyCheck" = "Automatically check for updates";
+
+"typingSound.section" = "Typing Sound";
+"typingSound.enabled" = "Play typing sounds";
+"typingSound.selection" = "Sound";
+"typingSound.volume" = "Volume";
+"typingSound.preview" = "Preview";
+"typingSound.kacha" = "Clack";
+"typingSound.koto" = "Thock";
+"typingSound.saku" = "Soft Click";
+"typingSound.piko" = "Blip";
+"typingSound.poko" = "Pop";
+"typingSound.kira" = "Chime";

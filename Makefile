@@ -1,10 +1,13 @@
 MAKEFLAGS += --no-print-directory
+export VERSION BUILD_NUMBER
 
 PROJECT_NAME := KeyDuty
 APP_NAME := $(PROJECT_NAME)
 PROJECT := $(PROJECT_NAME).xcodeproj
 SCHEME := $(PROJECT_NAME)
 BUILD_DIR := build
+SOURCE_PACKAGES_DIR := $(BUILD_DIR)/SourcePackages
+SPARKLE_BIN := $(SOURCE_PACKAGES_DIR)/artifacts/sparkle/Sparkle/bin
 DEV_DERIVED_DATA_DIR := $(BUILD_DIR)/DevDerivedData
 RELEASE_DERIVED_DATA_DIR := $(BUILD_DIR)/DerivedData
 TEST_DERIVED_DATA_DIR := $(BUILD_DIR)/TestDerivedData
@@ -29,9 +32,10 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m
 
-.PHONY: help bump-version generate lint lint-fix test test-specific build-dev build build-signed
+.PHONY: help version show-version check-version bump-version bump-build test-version
+.PHONY: generate lint lint-fix test test-specific build-dev build build-signed
 .PHONY: verify-signature stop run archive package dmg release
-.PHONY: notarize notarize-status notarize-staple clean clean-release
+.PHONY: notarize notarize-status notarize-staple update-assets clean clean-release
 
 .DEFAULT_GOAL := help
 
@@ -40,38 +44,34 @@ help: ## 利用可能なターゲットを表示
 	@echo ""
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-bump-version: ## バージョン更新（VERSION=x.y.z、省略時はパッチ更新）
-	@set -e; \
-	CURRENT_VERSION=$$(awk '/^[[:space:]]*MARKETING_VERSION:/{print $$2; exit}' project.yml); \
-	CURRENT_BUILD=$$(awk '/^[[:space:]]*CURRENT_PROJECT_VERSION:/{print $$2; exit}' project.yml); \
-	if [ -z "$$CURRENT_VERSION" ] || [ -z "$$CURRENT_BUILD" ]; then \
-		echo "$(RED)Error: project.ymlから現在のバージョンを取得できません$(NC)"; \
-		exit 1; \
-	fi; \
-	if ! printf '%s\n' "$$CURRENT_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
-		echo "$(RED)Error: MARKETING_VERSIONはx.y.z形式で指定してください: $$CURRENT_VERSION$(NC)"; \
-		exit 1; \
-	fi; \
-	if ! printf '%s\n' "$$CURRENT_BUILD" | grep -Eq '^[0-9]+$$'; then \
-		echo "$(RED)Error: CURRENT_PROJECT_VERSIONは整数で指定してください: $$CURRENT_BUILD$(NC)"; \
-		exit 1; \
-	fi; \
-	if [ -n "$(VERSION)" ]; then \
-		NEXT_VERSION="$(VERSION)"; \
-	else \
-		NEXT_VERSION=$$(awk -v version="$$CURRENT_VERSION" 'BEGIN { split(version, parts, "."); printf "%d.%d.%d", parts[1], parts[2], parts[3] + 1 }'); \
-	fi; \
-	if ! printf '%s\n' "$$NEXT_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
-		echo "$(RED)Error: VERSIONはx.y.z形式で指定してください: $$NEXT_VERSION$(NC)"; \
-		exit 1; \
-	fi; \
-	NEXT_BUILD=$$((CURRENT_BUILD + 1)); \
-	MARKETING_VERSION="$$NEXT_VERSION" CURRENT_PROJECT_VERSION="$$NEXT_BUILD" perl -0pi -e \
-		's/(MARKETING_VERSION:\s*)[0-9]+\.[0-9]+\.[0-9]+/$${1}$$ENV{MARKETING_VERSION}/g; s/(CURRENT_PROJECT_VERSION:\s*)[0-9]+/$${1}$$ENV{CURRENT_PROJECT_VERSION}/g' \
-		project.yml; \
-	echo "$(GREEN)Version bumped: $$CURRENT_VERSION ($$CURRENT_BUILD) -> $$NEXT_VERSION ($$NEXT_BUILD)$(NC)"
+version: show-version ## バージョンとビルド番号を表示
 
-generate: ## project.ymlからXcodeプロジェクトを生成
+show-version: ## バージョン設定の内容を表示
+	@./Scripts/update_version.sh --show
+
+check-version: ## バージョン設定の整合性を確認
+	@./Scripts/update_version.sh --check
+
+bump-version: ## バージョン更新（VERSION=x.y.z、BUILD_NUMBERは任意）
+	@if [ -z "$$VERSION" ]; then \
+		echo "Usage: make bump-version VERSION=x.y.z [BUILD_NUMBER=n]" >&2; \
+		exit 1; \
+	fi
+	@if [ -n "$$BUILD_NUMBER" ]; then \
+		./Scripts/update_version.sh "$$VERSION" "$$BUILD_NUMBER"; \
+	else \
+		./Scripts/update_version.sh "$$VERSION"; \
+	fi
+	@$(MAKE) generate
+
+bump-build: ## ビルド番号だけを1増やす
+	@./Scripts/update_version.sh --build-only
+	@$(MAKE) generate
+
+test-version: ## バージョン更新の動作を検証
+	@./Scripts/test_version.sh
+
+generate: check-version ## project.ymlからXcodeプロジェクトを生成
 	@if command -v xcodegen >/dev/null 2>&1; then \
 		xcodegen generate; \
 	else \
@@ -103,6 +103,7 @@ test: generate ## 全テストを実行
 	@mkdir -p "$(TEST_DERIVED_DATA_DIR)"
 	xcodebuild test \
 		-project $(PROJECT) \
+		-clonedSourcePackagesDirPath "$(SOURCE_PACKAGES_DIR)" \
 		-scheme $(SCHEME) \
 		-destination '$(DESTINATION)' \
 		-resultBundlePath "$(TEST_RESULT_BUNDLE)" \
@@ -120,6 +121,7 @@ test-specific: generate ## 指定テストを実行（TEST=ClassName）
 	@mkdir -p "$(TEST_DERIVED_DATA_DIR)"
 	xcodebuild test \
 		-project $(PROJECT) \
+		-clonedSourcePackagesDirPath "$(SOURCE_PACKAGES_DIR)" \
 		-scheme $(SCHEME) \
 		-destination '$(DESTINATION)' \
 		-resultBundlePath "$(TEST_RESULT_BUNDLE)" \
@@ -133,6 +135,7 @@ build-dev: generate ## 署名なしDebug版をビルド
 	@mkdir -p "$(DEV_DERIVED_DATA_DIR)"
 	xcodebuild build \
 		-project $(PROJECT) \
+		-clonedSourcePackagesDirPath "$(SOURCE_PACKAGES_DIR)" \
 		-scheme $(SCHEME) \
 		-configuration Debug \
 		-destination '$(DESTINATION)' \
@@ -145,6 +148,7 @@ build: generate ## 署名なしRelease版をビルド
 	@mkdir -p "$(RELEASE_DERIVED_DATA_DIR)"
 	xcodebuild build \
 		-project $(PROJECT) \
+		-clonedSourcePackagesDirPath "$(SOURCE_PACKAGES_DIR)" \
 		-scheme $(SCHEME) \
 		-configuration Release \
 		-destination '$(DESTINATION)' \
@@ -157,6 +161,7 @@ build-signed: generate ## Developer ID署名付きRelease版をビルド
 	@mkdir -p "$(SIGNED_DERIVED_DATA_DIR)"
 	xcodebuild build \
 		-project $(PROJECT) \
+		-clonedSourcePackagesDirPath "$(SOURCE_PACKAGES_DIR)" \
 		-scheme $(SCHEME) \
 		-configuration Release \
 		-destination 'generic/platform=macOS' \
@@ -179,6 +184,7 @@ archive: generate ## Developer ID署名付きxcarchiveを作成
 	@mkdir -p "$(PROD_BUILD_DIR)"
 	xcodebuild archive \
 		-project $(PROJECT) \
+		-clonedSourcePackagesDirPath "$(SOURCE_PACKAGES_DIR)" \
 		-scheme $(SCHEME) \
 		-configuration Release \
 		-archivePath "$(ARCHIVE_PATH)" \
@@ -311,6 +317,9 @@ notarize-staple: ## notarizationチケットをDMGへ付加
 	xcrun stapler staple "$(DMG_PATH)"
 	spctl -a -t open --context context:primary-signature -v "$(DMG_PATH)"
 	@echo "$(GREEN)Notarized DMG ready: $(DMG_PATH)$(NC)"
+
+update-assets: ## 公証済みDMGと署名付きappcastをGitHub Releases向けに用意
+	@./Scripts/prepare_update_assets.sh "$(DMG_PATH)" "$(SPARKLE_BIN)" "$(PROD_BUILD_DIR)/github"
 
 clean: ## Xcodeプロジェクトと全ビルド成果物を削除
 	@echo "$(BLUE)Cleaning generated and build artifacts...$(NC)"

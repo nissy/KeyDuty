@@ -12,6 +12,9 @@ final class Preferences: ObservableObject {
         static let keyEnabled = "keyEnabled"
         static let keyRemappings = "keyRemappings"
         static let keyAssignments = "keyAssignments"
+        static let typingSoundEnabled = "typingSoundEnabled"
+        static let typingSound = "typingSound"
+        static let typingSoundVolume = "typingSoundVolume"
         static let idleEnabled = "idleEnabled"
         static let idleTimeoutSeconds = "idleTimeoutSeconds"
         static let idleAction = "idleAction"
@@ -40,6 +43,18 @@ final class Preferences: ObservableObject {
 
     func reportActionError(for action: KeyAction, error: Error) {
         actionErrorProvider = { L10n.text("error.action", action.displayName, error.localizedDescription) }
+    }
+
+    @Published var typingSoundEnabled: Bool {
+        didSet { defaults.set(typingSoundEnabled, forKey: DefaultsKey.typingSoundEnabled) }
+    }
+
+    @Published var typingSound: TypingSound {
+        didSet { defaults.set(typingSound.rawValue, forKey: DefaultsKey.typingSound) }
+    }
+
+    @Published var typingSoundVolume: Double {
+        didSet { defaults.set(typingSoundVolume, forKey: DefaultsKey.typingSoundVolume) }
     }
 
     @Published var idleEnabled: Bool {
@@ -79,6 +94,10 @@ final class Preferences: ObservableObject {
             from: defaults.data(forKey: DefaultsKey.keyAssignments),
             decoder: decoder
         ) ?? Self.migrateAssignments(from: defaults)
+        typingSoundEnabled = defaults.bool(forKey: DefaultsKey.typingSoundEnabled)
+        typingSound = defaults.string(forKey: DefaultsKey.typingSound).flatMap(TypingSound.init(rawValue:)) ?? .kacha
+        let savedVolume = defaults.object(forKey: DefaultsKey.typingSoundVolume) as? Double ?? 0.5
+        typingSoundVolume = savedVolume.isFinite ? min(max(savedVolume, 0), 1) : 0.5
         idleEnabled = defaults.object(forKey: DefaultsKey.idleEnabled) as? Bool ?? false
         idleTimeoutSeconds = min(
             max(defaults.object(forKey: DefaultsKey.idleTimeoutSeconds) as? Double ?? 60, 5),
