@@ -237,6 +237,7 @@
 
 "updates.check" = "アップデートを確認…";
 "updates.section" = "ソフトウェアアップデート";
+"updates.currentVersion" = "現在のバージョン";
 "updates.automaticallyCheck" = "アップデートを自動で確認";
 
 "typingSound.section" = "打鍵音";

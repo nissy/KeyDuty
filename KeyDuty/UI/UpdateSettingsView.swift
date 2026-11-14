@@ -13,6 +13,10 @@ struct UpdateSettingsView: View {
 
     var body: some View {
         Section(L10n.text("updates.section")) {
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                LabeledContent(L10n.text("updates.currentVersion"), value: version)
+            }
+
             Toggle(L10n.text("updates.automaticallyCheck"), isOn: $automaticallyChecksForUpdates)
                 .onChange(of: automaticallyChecksForUpdates) { _, enabled in
                     updater.automaticallyChecksForUpdates = enabled

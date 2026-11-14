@@ -237,6 +237,7 @@
 
 "updates.check" = "Check for Updates…";
 "updates.section" = "Software Update";
+"updates.currentVersion" = "Current Version";
 "updates.automaticallyCheck" = "Automatically check for updates";
 
 "typingSound.section" = "Typing Sound";
